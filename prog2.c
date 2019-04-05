@@ -36,6 +36,9 @@ struct pkt {
 
 /********* STUDENTS WRITE THE NEXT SEVEN ROUTINES *********/
 
+int A_seqnum;
+int B_seqnum;
+struct msg current_messsage;
 
 
 
@@ -43,7 +46,16 @@ struct pkt {
 A_output(message)
   struct msg message;
 {
-
+  current_messsage=message;
+  struct pkt p;
+  for(int i=0;i<20;i++){
+    p.payload[i]=message.data[i];
+  }
+  p.seqnum=A_seqnum;
+  p.acknum=0;
+  //TODO: p.checksum
+  tolayer3(0,p);
+  starttimer(0,15.0);
 }
 
 B_output(message)  /* need be completed only for extra credit */
@@ -56,19 +68,31 @@ B_output(message)  /* need be completed only for extra credit */
 A_input(packet)
   struct pkt packet;
 {
-
+  if(packet.acknum==A_seqnum){
+    A_seqnum=(A_seqnum+1)/2;
+    stoptimer(0);
+  }
 }
 
 /* called when A's timer goes off */
 A_timerinterrupt()
 {
-
+  struct pkt p;
+  for(int i=0;i<20;i++){
+    p.payload[i]=current_messsage.data[i];
+  }
+  p.seqnum=A_seqnum;
+  p.acknum=0;
+  //TODO: p.checksum
+  tolayer3(0,p);
+  starttimer(0,15.0);
 }  
 
 /* the following routine will be called once (only) before any other */
 /* entity A routines are called. You can use it to do any initialization */
 A_init()
 {
+  A_seqnum=1;
 }
 
 
@@ -78,6 +102,17 @@ A_init()
 B_input(packet)
   struct pkt packet;
 {
+  if(packet.seqnum==B_seqnum){
+    B_seqnum=(B_seqnum+1)/2;
+    struct msg m;
+    for(int i=0;i<20;i++){
+      m.data[i]=packet.payload[i];
+    }
+    tolayer5(1,m);
+  }
+  struct pkt ack_packet;
+  ack_packet.acknum=packet.seqnum;
+  tolayer3(1,ack_packet);
 }
 
 /* called when B's timer goes off */
@@ -89,6 +124,7 @@ B_timerinterrupt()
 /* entity B routines are called. You can use it to do any initialization */
 B_init()
 {
+  B_seqnum=0;
 }
 
 
